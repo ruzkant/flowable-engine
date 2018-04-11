@@ -172,6 +172,10 @@ public class DbSqlSessionFactory implements SessionFactory {
         return getDatabaseType().equals("oracle");
     }
 
+    public boolean isPostgres() {
+        return getDatabaseType().equals("postgres");
+    }
+
     public Boolean isBulkInsertable(Class<? extends Entity> entityClass) {
         return bulkInserteableEntityClasses != null && bulkInserteableEntityClasses.contains(entityClass);
     }

@@ -17,6 +17,7 @@ import java.sql.Connection;
 import org.flowable.content.engine.ContentEngineConfiguration;
 import org.flowable.content.engine.impl.util.CommandContextUtil;
 import org.flowable.engine.common.api.FlowableException;
+import org.flowable.engine.common.impl.db.CockroachUtil;
 import org.flowable.engine.common.impl.db.DbSchemaManager;
 import org.flowable.engine.common.impl.interceptor.CommandContext;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseConnection;
 import liquibase.database.DatabaseFactory;
+import liquibase.database.core.PostgresDatabase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
 
@@ -77,6 +79,10 @@ public class ContentDbSchemaManager implements DbSchemaManager {
             
             DatabaseConnection connection = new JdbcConnection(jdbcConnection);
             Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(connection);
+            if(database instanceof PostgresDatabase && CockroachUtil.isCockroach(LOGGER, jdbcConnection)) {
+                // until some issues on cockroachdb is resolved schemas are simpler to run outside a transaction
+                database.setAutoCommit(true);
+            }
             database.setDatabaseChangeLogTableName(ContentEngineConfiguration.LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogTableName());
             database.setDatabaseChangeLogLockTableName(ContentEngineConfiguration.LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogLockTableName());
 

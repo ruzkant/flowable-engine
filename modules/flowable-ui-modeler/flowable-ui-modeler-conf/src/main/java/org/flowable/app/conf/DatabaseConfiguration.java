@@ -133,7 +133,8 @@ public class DatabaseConfiguration {
         LOGGER.info("Configuring Liquibase");
 
         try {
-            DatabaseConnection connection = new JdbcConnection(dataSource.getConnection());
+            Connection jdbcConnection = dataSource.getConnection();
+            DatabaseConnection connection = new JdbcConnection(jdbcConnection);
             Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(connection);
             database.setDatabaseChangeLogTableName(LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogTableName());
             database.setDatabaseChangeLogLockTableName(LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogLockTableName());

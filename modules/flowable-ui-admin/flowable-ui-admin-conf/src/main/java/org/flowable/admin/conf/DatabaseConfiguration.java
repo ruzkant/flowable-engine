@@ -12,6 +12,7 @@
  */
 package org.flowable.admin.conf;
 
+import java.sql.Connection;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -19,6 +20,7 @@ import javax.sql.DataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.flowable.admin.domain.generator.MinimalDataGenerator;
 import org.flowable.admin.properties.FlowableAdminAppProperties;
+import org.flowable.app.db.CockroachUtil;
 import org.flowable.app.service.exception.InternalServerErrorException;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
@@ -34,6 +36,7 @@ import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseConnection;
 import liquibase.database.DatabaseFactory;
+import liquibase.database.core.PostgresDatabase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
 
@@ -79,9 +82,13 @@ public class DatabaseConfiguration {
         LOGGER.debug("Configuring Liquibase");
 
         try {
-
-            DatabaseConnection connection = new JdbcConnection(dataSource.getConnection());
+            Connection jdbcConnection = dataSource.getConnection();
+            DatabaseConnection connection = new JdbcConnection(jdbcConnection);
             Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(connection);
+            if(database instanceof PostgresDatabase && CockroachUtil.isCockroach(LOGGER, jdbcConnection)) {
+                // until some issues on cockroachdb is resolved schemas are simpler to run outside a transaction
+                database.setAutoCommit(true);
+            }
             database.setDatabaseChangeLogTableName(LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogTableName());
             database.setDatabaseChangeLogLockTableName(LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogLockTableName());
 

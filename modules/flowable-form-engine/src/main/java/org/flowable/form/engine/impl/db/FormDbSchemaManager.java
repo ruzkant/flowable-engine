@@ -16,20 +16,24 @@ import java.sql.Connection;
 
 import org.apache.commons.lang3.StringUtils;
 import org.flowable.engine.common.api.FlowableException;
+import org.flowable.engine.common.impl.db.CockroachUtil;
 import org.flowable.engine.common.impl.db.DbSchemaManager;
 import org.flowable.engine.common.impl.interceptor.CommandContext;
 import org.flowable.form.engine.FormEngineConfiguration;
 import org.flowable.form.engine.impl.util.CommandContextUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.DatabaseConnection;
 import liquibase.database.DatabaseFactory;
+import liquibase.database.core.PostgresDatabase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
 
 public class FormDbSchemaManager implements DbSchemaManager {
-    
+    private static final Logger LOGGER = LoggerFactory.getLogger(FormDbSchemaManager.class);
     public static String LIQUIBASE_CHANGELOG = "org/flowable/form/db/liquibase/flowable-form-db-changelog.xml";
     
     @Override
@@ -74,6 +78,10 @@ public class FormDbSchemaManager implements DbSchemaManager {
             
             DatabaseConnection connection = new JdbcConnection(jdbcConnection);
             Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(connection);
+            if(database instanceof PostgresDatabase && CockroachUtil.isCockroach(LOGGER, jdbcConnection)) {
+                // until some issues on cockroachdb is resolved schemas are simpler to run outside a transaction
+                database.setAutoCommit(true);
+            }
             database.setDatabaseChangeLogTableName(FormEngineConfiguration.LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogTableName());
             database.setDatabaseChangeLogLockTableName(FormEngineConfiguration.LIQUIBASE_CHANGELOG_PREFIX + database.getDatabaseChangeLogLockTableName());
 
